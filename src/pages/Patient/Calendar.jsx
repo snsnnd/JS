@@ -44,12 +44,11 @@ export default function Calendar({ profile, token }) {
   const [selectedDate, setSelectedDate] = useState(getRecommendedDateStr());
   const [bookedRecord, setBookedRecord] = useState(null);
 
-  // 🚀 核心：真正的月份状态管理
+  // 真正的月份状态管理
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-11
 
-  // 切换上个月
   const handlePrevMonth = () => {
     if (viewMonth === 0) {
       setViewMonth(11);
@@ -59,7 +58,6 @@ export default function Calendar({ profile, token }) {
     }
   };
 
-  // 切换下个月
   const handleNextMonth = () => {
     if (viewMonth === 11) {
       setViewMonth(0);
@@ -69,15 +67,12 @@ export default function Calendar({ profile, token }) {
     }
   };
 
-  // 动态计算当前视图月份的日历格子
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay();
   const emptyDays = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
-  // 🚀 日历双击事件：自动填入双击的日期并弹出预约框
   const handleDayDoubleClick = (dayNum) => {
     const doubleClickedDate = new Date(viewYear, viewMonth, dayNum);
-    // 检查是否是过去的时间
     if (doubleClickedDate < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
       return alert("无法预约过去的日期哦！");
     }
@@ -179,7 +174,7 @@ export default function Calendar({ profile, token }) {
         </motion.div>
       </div>
 
-      {/* 🚀 全新升级的核心：可切换月份与双击预约的日历引擎 */}
+      {/* 🚀 日历引擎 */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mt-6 relative">
         <div className="absolute top-6 right-6 flex items-center space-x-2">
           <button onClick={handlePrevMonth} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"><ChevronLeft className="w-5 h-5"/></button>
@@ -210,49 +205,62 @@ export default function Calendar({ profile, token }) {
           {[...Array(daysInMonth)].map((_, i) => {
             const dayNum = i + 1;
             
-            // 判定今天（蓝色）
+            // 状态判定
             const isToday = dayNum === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
-            
-            // 🚀 判定 AI 推荐日（粉色虚线），去掉了 !bookedRecord 的限制，永久显示
             const isRecommended = dayNum === recommendedDateObj.getDate() && 
                                   viewMonth === recommendedDateObj.getMonth() && 
                                   viewYear === recommendedDateObj.getFullYear();
             
-            // 判定真实预约日（实心粉色）
             let isBooked = false;
             if (bookedRecord) {
               const bDate = new Date(bookedRecord);
               isBooked = dayNum === bDate.getDate() && viewMonth === bDate.getMonth() && viewYear === bDate.getFullYear();
             }
 
-            // 颜色逻辑：优先显示已预约，其次显示今天，最后显示推荐
-            let cellStyle = 'text-gray-600 hover:bg-gray-50 cursor-pointer'; // 默认
-            
+            // 🚀 核心修复：样式叠加机制，不再互斥
+            let cellClasses = ['p-3 rounded-xl transition-all relative flex items-center justify-center select-none'];
+
             if (isBooked) {
-              cellStyle = 'bg-pink-500 text-white font-bold shadow-md shadow-pink-200 scale-105 z-10';
-            } else if (isToday) {
-              cellStyle = 'bg-blue-50 text-blue-600 font-bold border border-blue-200';
-            } else if (isRecommended) {
-              cellStyle = 'border-2 border-dashed border-pink-300 text-pink-600 bg-pink-50 cursor-pointer';
+              // 预约了必定是实心粉色，最高优先级
+              cellClasses.push('bg-pink-500 text-white font-bold shadow-md shadow-pink-200 scale-105 z-10');
+            } else {
+              // 处理今天和推荐色的叠加组合
+              if (isToday) {
+                cellClasses.push('bg-blue-50 font-bold'); // 今天永远有浅蓝底色
+              } else {
+                cellClasses.push('hover:bg-gray-50 cursor-pointer');
+              }
+
+              if (isRecommended) {
+                // 如果是推荐日，强制粉色边框和文字（覆盖今天的蓝色文字）
+                cellClasses.push('border-2 border-dashed border-pink-400 text-pink-600'); 
+              } else if (isToday) {
+                // 只有在是今天，且不是推荐日的时候，才用蓝色边框
+                cellClasses.push('border border-blue-200 text-blue-600');
+              } else {
+                cellClasses.push('text-gray-600');
+              }
             }
 
             return (
               <div 
                 key={`day-${i}`} 
                 onDoubleClick={() => handleDayDoubleClick(dayNum)}
-                className={`p-3 rounded-xl transition-all relative flex items-center justify-center select-none ${cellStyle}`}
+                className={cellClasses.join(' ')}
                 title="双击进行预约"
               >
                 {dayNum}
                 {isBooked && <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-white rounded-full shadow-sm"></div>}
-                {isRecommended && !isBooked && !isToday && <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>}
+                
+                {/* 🚀 去掉了 !isToday 限制，哪怕推荐日是今天，也会跳动粉色点 */}
+                {isRecommended && !isBooked && <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* 预约弹窗 (由双击触发) */}
+      {/* 预约弹窗 */}
       <AnimatePresence>
         {showBooking && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">

@@ -16,8 +16,28 @@ export default function Login({ onLoginSuccess }) {
       const params = new URLSearchParams();
       params.append('username', username);
       params.append('password', password);
-      const response = await axios.post(`${BASE_URL}/api/auth/login`, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-      onLoginSuccess({ username, role: response.data.role || 'doctor', token: response.data.access_token });
+      
+      // 1. 登录并获取 Token
+      const loginResponse = await axios.post(`${BASE_URL}/api/auth/login`, params, { 
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' } 
+      });
+      
+      const token = loginResponse.data.access_token;
+      const role = loginResponse.data.role || 'doctor';
+
+      // 2. 🚀 核心修复：用刚拿到的 Token 去拉取用户的完整档案 (包含 bmi, lmp, psych_status 等)
+      const meResponse = await axios.get(`${BASE_URL}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // 3. 将所有信息（身份认证信息 + 个人生理档案）一起发给全局状态
+      onLoginSuccess({ 
+        username, 
+        role, 
+        token,
+        ...meResponse.data // 展开后端传来的完整数据
+      });
+
     } catch (error) {
       alert("登录拒绝：账号或密码错误！");
     } finally {
@@ -42,7 +62,7 @@ export default function Login({ onLoginSuccess }) {
           <Lock className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/50 border border-gray-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/50" placeholder="密码" />
         </div>
-        <motion.button disabled={loading} className="w-full bg-gray-900 text-white font-medium py-4 rounded-2xl shadow-xl flex justify-center items-center">
+        <motion.button disabled={loading} className="w-full bg-gray-900 text-white font-medium py-4 rounded-2xl shadow-xl flex justify-center items-center hover:bg-gray-800 transition-colors">
           {loading ? <Activity className="w-5 h-5 animate-spin" /> : '安全登入'}
         </motion.button>
       </form>
