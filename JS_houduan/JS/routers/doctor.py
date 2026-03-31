@@ -223,3 +223,60 @@ def get_model_metrics(current_doctor: models.User = Depends(get_current_doctor))
             "version": "v2.1.0"
         }
     }
+
+
+@router.get("/patients")
+def get_patients(db: Session = Depends(get_db)):
+    # 现在的查询要关联出更多的生理信息
+    return db.query(models.User).filter(models.User.role == "patient").all()
+
+@router.get("/system-logs")
+def get_logs(db: Session = Depends(get_db)):
+    # 供 MLOps 页面展示系统迭代状态
+    return db.query(models.AuditLog).order_by(models.AuditLog.timestamp.desc()).limit(10).all()
+
+# routers/doctor.py
+
+@router.post("/analyze")
+def run_analysis(payload: AnalysisRequest, db: Session = Depends(get_db)):
+    # 1. 核心：根据请求里的 patient_username 查出该孕妇的生理档案
+    patient = db.query(models.User).filter(models.User.username == payload.patient_username).first()
+    if not patient or not patient.bmi:
+        raise HTTPException(status_code=400, detail="该孕妇尚未建立生理档案(BMI)，请先引导其在客户端建档。")
+
+    # 2. 调用 predictor，传入真实的指标 + 真实的 BMI
+    # 这就是论文第一问的落地：BMI 参与了风险决策
+    metrics = payload.dict(exclude={"patient_username"})
+    score, risk, debug_info, shap_expl = predictor.predict_anomaly_dual_engine(metrics, patient.bmi)
+
+    # 3. 计算最佳建议周 (基于公式推演)
+    best_week = predictor.predict_best_week(patient.bmi)
+
+    # 4. 保存结果到数据库 (这样孕妇端刷新就能看到了)
+    new_result = models.AIAnalysisResult(
+        patient_id=patient.id,
+        risk_level=risk,
+        anomaly_score=score,
+        recommended_weeks=best_week, # 存入算出的建议周
+        shap_analysis=shap_expl       # 存入 XAI 归因数据
+    )
+    db.add(new_result)
+    db.commit()
+
+@router.post("/retrain/iforest")
+def trigger_iforest_retrain(db: Session = Depends(get_db), admin: models.User = Depends(get_current_doctor)):
+    # 调用 predictor 里的完善方法
+    success, msg = predictor.retrain_iforest(db)
+    
+    # 写入 AuditLog (审计日志)，供前端展示“迭代成功/失败”
+    log = models.AuditLog(
+        action="iForest_Retrain",
+        status="Success" if success else "Failed",
+        operator=admin.username,
+        detail=msg
+    )
+    db.add(log)
+    db.commit()
+    
+    return {"status": "ok", "message": msg}
+
