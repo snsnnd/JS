@@ -49,3 +49,14 @@ async def login_for_access_token(
         "token_type": "bearer",
         "role": user.role # 附带返回 role，方便前端根据角色跳转到不同的页面(医生大屏 or 孕妇报告)
     }
+
+# 🚀 核心新增：获取当前登录用户的完整个人档案
+@router.get("/me", response_model=pydantic_schemas.UserResponse, summary="获取当前用户完整信息")
+async def get_current_user_info(
+    current_user: User = Depends(security.get_current_user)
+):
+    """
+    前端登录拿到 Token 后，会调用这个接口获取用户的身高、体重、末次月经和心理状态。
+    有了这些数据，前端才能判断是否是“老用户”，从而允许直接点击“下一步”。
+    """
+    return current_user

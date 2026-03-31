@@ -28,9 +28,19 @@ class UserResponse(BaseModel):
     id: int
     username: str
     role: str
-    real_name: str
+    real_name: Optional[str] = None # 建议给个默认值，防止数据库为 null 时报错
     
-    model_config = ConfigDict(from_attributes=True) # 允许直接从 SQLAlchemy 对象转化
+    # 🚀 核心新增：同步数据库中的生理档案字段
+    name: Optional[str] = None      # 真实姓名
+    age: Optional[int] = None       # 年龄
+    height: Optional[float] = None  # 身高
+    weight: Optional[float] = None  # 体重
+    bmi: Optional[float] = None     # BMI
+    lmp: Optional[str] = None       # 末次月经
+    weeks: Optional[float] = None   # 建档孕周
+    psych_status: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
 
 # ==========================
 # 3. 孕妇档案录入结构

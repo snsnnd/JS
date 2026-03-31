@@ -38,7 +38,8 @@ class UserResponse(BaseModel):
     bmi: Optional[float] = None     # BMI
     lmp: Optional[str] = None       # 末次月经
     weeks: Optional[float] = None   # 建档孕周
-
+    psych_status: Optional[str] = None
+    
     model_config = ConfigDict(from_attributes=True)
 
 # ==========================
