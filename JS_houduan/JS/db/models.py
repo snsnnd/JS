@@ -14,6 +14,15 @@ class User(Base):
     real_name = Column(String(50))
     contact_info = Column(String(100))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    # 生理档案字段 (用于第一问的 BMI 影响分析)
+    name = Column(String(50), nullable=True) # 姓名
+    age = Column(Integer, nullable=True)    # 年龄
+    height = Column(Float, nullable=True)   # 身高 (cm)
+    weight = Column(Float, nullable=True)   # 体重 (kg)
+    bmi = Column(Float, nullable=True)      # 计算出的 BMI
+    lmp = Column(String(20), nullable=True) # 末次月经日期
+    weeks = Column(Float, nullable=True)    # 初始建档孕周
 
     # 关联属性
     profile = relationship("PatientProfile", back_populates="owner", uselist=False, cascade="all, delete-orphan")
@@ -94,3 +103,24 @@ class ChatMessage(Base):
     # 关联对象
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
+
+class Appointment(Base):
+    __tablename__ = "appointments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    patient_id = Column(Integer, ForeignKey("users.id")) # 关联孕妇
+    doctor_id = Column(Integer, ForeignKey("users.id"))  # 关联医生
+    appointment_time = Column(String(50))               # 预约时间字符串
+    status = Column(String(20), default="已预约")         # 状态：已预约/已就诊/已取消
+    type = Column(String(20), default="NIPT复查")        # 预约类型
+    created_at = Column(DateTime, default=func.now())
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String(100))      # 动作：如 "Model_Retrain"
+    status = Column(String(20))      # 状态：Success / Failed
+    operator = Column(String(50))    # 操作人
+    detail = Column(String(500))     # 详细报错或成功信息
+    timestamp = Column(DateTime, default=func.now())
