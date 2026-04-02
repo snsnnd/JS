@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Apple, CalendarClock, Bell, Share2, CheckCircle2, Clock, MapPin, DownloadCloud, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
+// 🚀 顶部导入新增了 Activity 图标
+import { Heart, Apple, CalendarClock, Bell, Share2, CheckCircle2, Clock, MapPin, DownloadCloud, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
 import axios from 'axios';
 import { BASE_URL } from '../../config';
 
@@ -285,20 +286,37 @@ export default function Calendar({ profile, token }) {
         {showPoster && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden relative">
-              <div className="bg-gradient-to-b from-pink-50 to-rose-100 p-8 pb-12 relative border-[8px] border-white">
+              <div className="bg-gradient-to-b from-pink-50 to-rose-100 p-8 pb-6 relative border-[8px] border-white">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><Heart className="w-24 h-24 text-pink-500 fill-pink-500"/></div>
                 <h2 className="text-2xl font-black text-pink-600 mb-1">准爸爸陪诊任务单</h2>
-                <p className="text-xs font-bold text-gray-500 mb-6">专属孕期云助理 AI 测算签发</p>
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 shadow-sm border border-white mb-6">
+                <p className="text-xs font-bold text-gray-500 mb-4">专属孕期云助理 AI 测算签发</p>
+                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white mb-5">
                   <p className="text-xs text-gray-500 mb-1">已定/预计采血日</p>
                   <p className="text-lg font-bold text-gray-800 flex items-center"><CalendarClock className="w-5 h-5 text-pink-400 mr-2"/> {bookedRecord ? bookedRecord.replace('T', ' ') : getRecommendedDateStr().replace('T', ' ')}</p>
                 </div>
-                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center"><MapPin className="w-4 h-4 mr-1 text-pink-500"/> 出发前准备清单</h3>
-                <ul className="space-y-3 text-sm text-gray-700 font-medium">
+                <h3 className="text-sm font-bold text-gray-800 mb-2 flex items-center"><MapPin className="w-4 h-4 mr-1 text-pink-500"/> 出发前准备清单</h3>
+                <ul className="space-y-2 text-xs text-gray-700 font-medium mb-5">
                   <li className="flex items-start"><span className="text-pink-600 mr-2">✓</span>携带好双方身份证及建档小结。</li>
                   <li className="flex items-start"><span className="text-pink-600 mr-2">✓</span>NIPT 无需空腹，请准备好丰盛早餐！</li>
-                  <li className="flex items-start"><span className="text-pink-600 mr-2">✓</span>平稳驾驶，主动提包，给予情绪价值。</li>
                 </ul>
+
+                {/* 🚀 新增：院内智能陪诊指南模块 */}
+                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center"><Activity className="w-4 h-4 mr-1 text-pink-500"/> 院内智能陪诊指南</h3>
+                <div className="bg-white/60 backdrop-blur-md rounded-xl p-4 shadow-sm border border-white space-y-3 relative z-10">
+                  <div className="flex items-start">
+                    <div className="w-4 h-4 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-bold mr-2 shrink-0 mt-0.5">1</div>
+                    <p className="text-xs text-gray-700"><span className="font-bold text-pink-600">一楼签到：</span>自助机刷身份证，打印指引单</p>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-4 h-4 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-bold mr-2 shrink-0 mt-0.5">2</div>
+                    <p className="text-xs text-gray-700"><span className="font-bold text-pink-600">三楼产科：</span>引导孕妈候诊，陪伴医生开单</p>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-4 h-4 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-bold mr-2 shrink-0 mt-0.5">3</div>
+                    <p className="text-xs text-gray-700"><span className="font-bold text-pink-600">二楼检验：</span>扫码缴费后抽血，帮忙按压针眼</p>
+                  </div>
+                </div>
+
               </div>
               <div className="p-4 bg-white flex space-x-3">
                 <button onClick={() => setShowPoster(false)} className="flex-1 py-3 text-gray-500 font-bold bg-gray-100 rounded-xl">关闭</button>
