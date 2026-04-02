@@ -41,6 +41,12 @@ export default function Chat({ token }) {
   // 模拟本地 AI 知识库智能回复
   const generateAiReply = (text) => {
     const q = text.toLowerCase();
+    
+    // 🚀 新增：智能陪诊与到院流程的识别
+    if (q.includes('陪诊') || q.includes('流程') || q.includes('检查') || q.includes('去医院') || q.includes('到院')) {
+      return '🏥 【AI 智能陪诊指南】为您导航：\n\n📍 第一步【签到】：到达门诊 1 楼大厅，在自助机刷身份证/就诊卡完成签到。\n👩‍⚕️ 第二步【开单】：乘电梯至 3 楼产科门诊，在候诊区等待叫号，医生开具检查单。\n🩸 第三步【抽血】：手机扫码缴费后，前往 2 楼检验科抽血（NIPT 无需空腹，建议吃好早餐）。\n🛋️ 第四步【休息】：抽血后按压针眼 5 分钟，随后可带家属去 1 楼营养餐厅领取孕妇餐。\n\n报告将在 7-10 个工作日内推送到您的【我的检测报告】中，全程保持好心情哦！';
+    }
+
     if (q.includes('胖') || q.includes('bmi')) return '系统检测到您的体型特征，建议您近期适当控制快碳水摄入。较高的 BMI 会轻微稀释血液中的胎儿游离 DNA，可能导致我们的复查时间往后顺延哦。';
     if (q.includes('高风险') || q.includes('异常')) return '请您先不要惊慌。AI 给出的高风险提示并非最终确诊，建议您前往【产检日程表】双击日历进行预约，来院进行羊水穿刺复核，确诊率才是金标准。';
     if (q.includes('几周') || q.includes('时间')) return '根据您的个人档案，系统为您计算的最佳 NIPT 采血窗口期是孕 15 周左右。过早检测可能会因为游离 DNA 浓度不足（< 4%）导致假阴性。';
@@ -120,7 +126,8 @@ export default function Chat({ token }) {
 
           return (
             <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[70%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+              {/* 🚀 核心修改：加入了 whitespace-pre-wrap 使得 AI 回复中的 \n 能正确换行 */}
+              <div className={`max-w-[70%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm whitespace-pre-wrap ${
                 isMe ? 'bg-pink-500 text-white rounded-br-none' : 
                 isAi ? 'bg-purple-50 text-purple-800 border border-purple-100 rounded-bl-none' :
                 'bg-white border border-gray-100 text-gray-800 rounded-bl-none'
