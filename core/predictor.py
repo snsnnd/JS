@@ -3,7 +3,10 @@ import pandas as pd
 import numpy as np
 import math
 import os
-import shap
+try:
+    import shap
+except Exception:
+    shap = None
 
 class NIPTPredictor:
     def __init__(self, model_dir="ai_models"):
@@ -36,18 +39,26 @@ class NIPTPredictor:
                 self.scaler = joblib.load(self.scaler_path)
             if os.path.exists(self.features_path):
                 self.feature_names = joblib.load(self.features_path)
-            
+        except Exception as e:
+            print(f"⚠️ 特征预处理资源加载失败: {e}")
+
+        try:
             if os.path.exists(self.iforest_path):
                 self.model_iforest = joblib.load(self.iforest_path)
                 print("✅ 引擎 1 (iForest) 加载成功")
-                
+        except Exception as e:
+            print(f"⚠️ 引擎 1 (iForest) 加载失败: {e}")
+
+        try:
             if os.path.exists(self.xgb_path):
                 self.model_xgb = joblib.load(self.xgb_path)
-                self.explainer = shap.TreeExplainer(self.model_xgb)
-                print("✅ 引擎 2 (XGBoost) 及 SHAP 解释器加载成功")
-                
+                if shap:
+                    self.explainer = shap.TreeExplainer(self.model_xgb)
+                    print("✅ 引擎 2 (XGBoost) 及 SHAP 解释器加载成功")
+                else:
+                    print("⚠️ 引擎 2 (XGBoost) 已加载，但 SHAP 依赖缺失，XAI 解释暂不可用")
         except Exception as e:
-            print(f"⚠️ 模型加载/热更新过程中出现异常: {e}")
+            print(f"⚠️ 引擎 2 (XGBoost) 加载失败: {e}")
 
     def retrain_xgboost(self, db):
         """
@@ -262,12 +273,29 @@ class NIPTPredictor:
             iforest_score = float(max(0, min(1, 0.5 - iforest_raw)))
             
         xgb_score = 0.5
+        xgb_runtime_ok = False
         if self.model_xgb:
-            xgb_score = float(self.model_xgb.predict_proba(X_scaled)[0][1])
-            
-        w_if = self.weights["iforest"]
-        w_xgb = self.weights["xgboost"]
-        final_score = round((w_if * iforest_score) + (w_xgb * xgb_score), 4)
+            try:
+                xgb_score = float(self.model_xgb.predict_proba(X_scaled)[0][1])
+                xgb_runtime_ok = True
+            except Exception as e:
+                print(f"⚠️ XGBoost 推理失败，已回退到 iForest 单引擎: {e}")
+                xgb_score = 0.5
+
+        if_available = self.model_iforest is not None
+        xgb_available = self.model_xgb is not None and xgb_runtime_ok
+
+        if if_available and xgb_available:
+            w_if = self.weights["iforest"]
+            w_xgb = self.weights["xgboost"]
+            final_score = round((w_if * iforest_score) + (w_xgb * xgb_score), 4)
+            fusion_formula = f"Final = {w_if}*iForest + {w_xgb}*XGB"
+        elif if_available:
+            final_score = round(iforest_score, 4)
+            fusion_formula = "Final = iForest (XGB unavailable)"
+        else:
+            final_score = 0.5
+            fusion_formula = "Final = 0.5 (iForest unavailable)"
         
         # 风险定级
         risk_level = "低风险"
@@ -291,11 +319,15 @@ class NIPTPredictor:
                 }
             except Exception as e:
                 shap_expl = {"error": f"SHAP计算失败: {str(e)}"}
+        elif self.model_xgb and not self.explainer:
+            shap_expl = {"error": "SHAP 解释器不可用，请安装 shap 依赖后重启服务"}
 
         return final_score, risk_level, {
             "iforest_score": round(iforest_score, 3),
             "xgboost_score": round(xgb_score, 3),
-            "fusion_formula": f"Final = {w_if}*iForest + {w_xgb}*XGB"
+            "iforest_available": if_available,
+            "xgboost_available": xgb_available,
+            "fusion_formula": fusion_formula
         }, shap_expl
 
 predictor = NIPTPredictor()
